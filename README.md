@@ -1,31 +1,38 @@
-# Opportunity Scout: PM Job Discovery Automation
+# Opportunity Scout: PM Job Discovery for Airtribe Career Services
 
 ## What I Built and How It Works
 
-I built **Opportunity Scout**, an automated job discovery platform designed specifically for finding and aggregating early-career Product Manager (PM) and Product Analyst roles. 
+I built **Opportunity Scout**, an automated job discovery platform tailored specifically for the Airtribe Career Services team to find and aggregate early-career Product Manager (PM) and Product Analyst roles for learners.
 
-Instead of manually checking multiple job platforms every day, this tool automates the process by scraping live listings across the most popular job boards based on highly customizable parameters.
+Instead of manually checking communities, channels, and job boards every day, this tool fully automates the process by scraping live listings across multiple job sources and outputting a clean, structured digest.
 
 **How it works:**
-1. **Configurable Dashboard:** The user interacts with a modern React frontend to define their "Discovery Settings," such as specific job titles (e.g., "APM", "Junior PM"), target locations (or "Remote"), search timeframes, and job platforms.
-2. **Scraper Engine:** When a run is triggered, the Express.js backend receives these configurations and dynamically prepares API calls.
-3. **Data Extraction:** The backend orchestrates third-party scraping actors to pull live data from Indeed, LinkedIn, Wellfound, and Naukri.
-4. **Processing & Deduplication:** The fetched data is instantly filtered for relevance, deduplicated against previously found URLs, and stored securely in a PostgreSQL database.
-5. **Insights:** The dashboard instantly updates to show the new jobs, highlighting matching reasons, salary information (where available), and tracking overall discovery metrics over time. Results can easily be exported to CSV.
+1. **Configurable Dashboard:** The Airtribe team uses a simple React frontend to define exact criteria: job titles (e.g., "APM", "Junior PM"), target locations (India or Remote), search timeframes, and maximum jobs per run.
+2. **Scraper Engine:** When a run is triggered, the Express.js backend receives these configurations and dynamically prepares search queries.
+3. **Data Extraction:** The backend orchestrates robust third-party scraping actors to pull live data from 4 distinct job boards simultaneously.
+4. **Processing & Deduplication:** The fetched data is instantly filtered for relevance, deduplicated against previously found URLs (to maintain a high signal-to-noise ratio), and stored securely in a PostgreSQL database.
+5. **Insights & structured Digest:** The dashboard updates to show the new jobs, explicitly highlighting the exact role, company, source, link, and *why* it was flagged as relevant based on Airtribe parameters. Results can be instantly exported to CSV for sharing.
 
 ## Tools, APIs, and Models Used
 
-The architecture was built entirely as a full-stack automated platform rather than an LLM-wrapper, prioritizing fast, reliable real-time data pulling:
+The architecture is built as a robust full-stack system focused on real-time data pulling and accurate filtering to maximize the signal-to-noise ratio:
 
-*   **Frontend**: Built with **React** and **TypeScript**, bundled via **Vite**. UI styling is achieved seamlessly through **Tailwind CSS** and customized Radix **Shadcn UI** components.
-*   **Backend engine**: A robust **Node.js/Express.js** server handling the REST API, scraping orchestration, and job data processing.
-*   **Database**: **PostgreSQL** (hosted on Neon), interfaced using the **Drizzle ORM** for fully typed queries and schema migrations.
+*   **Frontend**: Built with **React** and **TypeScript**, styled via **Tailwind CSS** and **Shadcn UI**.
+*   **Backend server**: **Node.js/Express.js** handling the REST API, scraping orchestration, and processing.
+*   **Database**: **PostgreSQL** (hosted on Neon), interfaced using **Drizzle ORM** for fully typed schema migrations.
+
+### Source Selection & Rationale
+To ensure we capture early-career PM roles effectively, I selected 4 distinct channels, orchestrated heavily via the **Apify API**:
+1.  **LinkedIn Jobs** (`curious_coder/linkedin-jobs-scraper`): Essential. This is the largest professional network where companies officially post corporate roles, particularly larger tech and enterprise opportunities.
+2.  **Wellfound / AngelList** (`radeance/wellfound-jobs-scraper`): The premier platform for startup hiring. Early-stage companies heavily recruit entry-level PMs here, and they often offer remote flexibility. 
+3.  **Indeed** (`misceres/indeed-scraper`): A high-volume generic job board that often catches traditional companies, agencies, and non-tech sectors that need PMs but don't heavily use LinkedIn or Wellfound.
+4.  **Naukri** (`memo23/naukri-job-scraper`): Critical for the Indian market specifically. Many prominent Indian conglomerates and IT service companies post entry-level PM roles exclusively here.
 
 ## What I'd Improve with More Time
 
-Given more time to scale the product, I would introduce the following major features:
+Given more time to scale the product for the Career Services team, I would focus heavily on automation and deeper filtering:
 
-1. **Automated Cron Scheduling**: Allowing users to set up scheduled daily or weekly background runs so that new opportunities are continually pulled without needing to manually click "Run Discovery".
-2. **AI-Powered Description Analysis**: Passing the scraped job descriptions through an LLM (such as Gemini or Claude) to automatically summarize the required skills, deduce whether it is truly entry-level, and extract hidden salary ranges.
-3. **Email/Slack Alerts**: Implementing a notification system (via Resend or Slack Webhooks) to alert the user immediately when a high-relevance "Unseen" job is discovered.
-4. **Enhanced User Authentication**: Moving from local session-based auth to a modern OAuth flow (e.g., Google or LinkedIn login) to support a multi-tenant SaaS architecture where multiple users have separate tracked workspaces.
+1. **Automated Cron Scheduling (No Babysitting)**: I would implement automated CRON jobs using a service like Trigger.dev or GitHub Actions so the scrapers run completely headlessly in the background every 12 or 24 hours without any user intervention.
+2. **Real-time Slack Notifications**: As soon as the scheduled cron job discovers a new job that meets the criteria, I would ping the structured message (Role, Company, Link, Reason) directly to the Career Services Slack channel so the team is immediately notified without needing to check the dashboard.
+3. **Expanding the Discovery Funnel (Discord, Twitter, etc.)**: Beyond traditional job boards (LinkedIn, Indeed), the highest-signal opportunities often come from community networks. I would build custom scrapers or integrate bot webhooks to pull raw data directly from **Twitter/X**, targeted **Discord** communities, and niche **Slack** groups where founders hire directly.
+4. **AI-Powered Description Analysis**: Passing the scraped descriptions through an LLM (Gemini/Claude) to analyze the actual *daily responsibilities* and *required years of experience* (to filter out "Junior" titles that actually ask for 3+ YOE), drastically improving the signal-to-noise ratio.
