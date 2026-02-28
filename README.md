@@ -8,6 +8,9 @@ Instead of manually checking communities, channels, and job boards every day, th
 
 <img width="1599" height="845" alt="image" src="https://github.com/user-attachments/assets/cf702929-e6be-4711-89cd-cf836964a4dc" />
 
+<img width="1814" height="850" alt="image" src="https://github.com/user-attachments/assets/f8d41973-ca18-40b1-ab90-a88c7f7cd53d" />
+
+
 
 **How it works:**
 1. **Configurable Dashboard:** The Airtribe team uses a simple React frontend to define exact criteria: job titles (e.g., "APM", "Junior PM"), target locations (India or Remote), search timeframes, and maximum jobs per run.
