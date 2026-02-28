@@ -209,7 +209,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [includeProductAnalyst, setIncludeProductAnalyst] = useState(false);
-  const [selectedSources, setSelectedSources] = useState<string[]>(["indeed", "linkedin", "linkedin_posts"]);
+  const [selectedSources, setSelectedSources] = useState<string[]>(["indeed", "linkedin"]);
 
   const jobsQueryUrl = (() => {
     const params = new URLSearchParams();
@@ -368,9 +368,8 @@ export default function Dashboard() {
                   <Label className="text-xs text-muted-foreground">Sources</Label>
                   <div className="space-y-2">
                     {[
-                      { id: "indeed", label: "Indeed", icon: SiIndeed },
+                      { id: "indeed", label: "Indeed Jobs", icon: SiIndeed },
                       { id: "linkedin", label: "LinkedIn Jobs", icon: SiLinkedin },
-                      { id: "linkedin_posts", label: "LinkedIn Posts", icon: SiLinkedin },
                     ].map((source) => (
                       <label
                         key={source.id}

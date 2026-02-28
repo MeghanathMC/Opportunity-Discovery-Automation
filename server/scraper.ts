@@ -5,6 +5,9 @@ import { log } from "./index";
 const APIFY_TOKEN = process.env.APIFY_TOKEN;
 const APIFY_BASE_URL = "https://api.apify.com/v2";
 
+const LINKEDIN_JOBS_ACTOR = "hKByXkMQaC5Qt9UMN";
+const INDEED_ACTOR = "hMvNSpz3JnHgl5jkh";
+
 const TARGET_TITLES = [
   "associate product manager",
   "assistant product manager",
@@ -111,7 +114,7 @@ async function runApifyActor(actorId: string, input: Record<string, any>): Promi
 
     let status = "RUNNING";
     let attempts = 0;
-    const maxAttempts = 60;
+    const maxAttempts = 120;
 
     while (status === "RUNNING" || status === "READY") {
       if (attempts >= maxAttempts) {
@@ -126,7 +129,9 @@ async function runApifyActor(actorId: string, input: Record<string, any>): Promi
       if (!statusResponse.ok) continue;
       const statusData = await statusResponse.json();
       status = statusData.data.status;
-      log(`Actor run status: ${status} (attempt ${attempts})`, "scraper");
+      if (attempts % 6 === 0) {
+        log(`Actor run status: ${status} (${attempts * 5}s elapsed)`, "scraper");
+      }
     }
 
     if (status !== "SUCCEEDED") {
@@ -154,22 +159,22 @@ async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]
   const searchQueries = [
     "associate product manager",
     "junior product manager",
-    "APM product manager",
+    "APM",
   ];
   if (includeProductAnalyst) {
-    searchQueries.push("product analyst entry level");
+    searchQueries.push("product analyst");
   }
 
   const allJobs: InsertJob[] = [];
 
   for (const query of searchQueries) {
     try {
-      const items = await runApifyActor("hKByXkMQaC5Qt9UMN", {
+      const items = await runApifyActor(INDEED_ACTOR, {
+        position: query,
         country: "IN",
         location: "India",
-        maxItems: 15,
-        parseCompany: true,
-        position: query,
+        maxItemsPerSearch: 15,
+        parseCompanyDetails: false,
         saveOnlyUniqueItems: true,
         followApplyRedirects: false,
       });
@@ -181,7 +186,7 @@ async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]
         const url = item.url || item.externalApplyLink || "";
         const postedDate = item.postedAt || item.scrapedAt || "";
         const salary = item.salary || "";
-        const description = item.description?.substring(0, 500) || "";
+        const description = (item.description || "").substring(0, 500);
 
         if (!title || !url) continue;
         if (!isRelevantTitle(title, includeProductAnalyst)) continue;
@@ -196,7 +201,7 @@ async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]
           location,
           source: "Indeed",
           url,
-          postedDate,
+          postedDate: postedDate || null,
           relevanceReason: getRelevanceReason(title, location, "Indeed"),
           runId: null,
           salary: salary || null,
@@ -212,122 +217,56 @@ async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]
 }
 
 async function scrapeLinkedIn(includeProductAnalyst: boolean): Promise<InsertJob[]> {
-  const searchQueries = [
-    "associate product manager India",
-    "junior product manager India",
-    "APM India",
+  const searchUrls = [
+    "https://www.linkedin.com/jobs/search/?keywords=associate%20product%20manager&location=India&f_TPR=r604800",
+    "https://www.linkedin.com/jobs/search/?keywords=junior%20product%20manager&location=India&f_TPR=r604800",
+    "https://www.linkedin.com/jobs/search/?keywords=APM%20product%20manager&location=India&f_TPR=r604800",
   ];
   if (includeProductAnalyst) {
-    searchQueries.push("product analyst India");
+    searchUrls.push(
+      "https://www.linkedin.com/jobs/search/?keywords=product%20analyst&location=India&f_TPR=r604800"
+    );
   }
 
-  const allJobs: InsertJob[] = [];
-
-  for (const query of searchQueries) {
-    try {
-      const items = await runApifyActor("BHzDUfc6gjnse8RcT", {
-        searchUrl: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(query)}&location=India&f_TPR=r604800`,
-        scrapeCompany: false,
-        startPage: 1,
-        count: 15,
-        proxy: {
-          useApifyProxy: true,
-          apifyProxyGroups: ["RESIDENTIAL"],
-        },
-        minDelay: 2,
-        maxDelay: 5,
-      });
-
-      for (const item of items) {
-        const title = item.title || item.jobTitle || "";
-        const company = item.companyName || item.company || "Unknown";
-        const location = item.location || item.place || "India";
-        const url = item.jobUrl || item.url || item.link || "";
-        const postedDate = item.postedAt || item.publishedAt || item.listedAt || "";
-        const salary = item.salary || "";
-        const description = item.description?.substring(0, 500) || "";
-
-        if (!title || !url) continue;
-        if (!isRelevantTitle(title, includeProductAnalyst)) continue;
-
-        const isDuplicate = await storage.isDuplicateJob(url);
-        if (isDuplicate) continue;
-
-        allJobs.push({
-          title,
-          company,
-          location,
-          source: "LinkedIn",
-          url,
-          postedDate: postedDate ? String(postedDate) : null,
-          relevanceReason: getRelevanceReason(title, location, "LinkedIn"),
-          runId: null,
-          salary: salary || null,
-          description: description || null,
-        });
-      }
-    } catch (error: any) {
-      log(`Error scraping LinkedIn for "${query}": ${error.message}`, "scraper");
-    }
-  }
-
-  return allJobs;
-}
-
-async function scrapeLinkedInPosts(includeProductAnalyst: boolean): Promise<InsertJob[]> {
   const allJobs: InsertJob[] = [];
 
   try {
-    const items = await runApifyActor("2SyF0bVxmgGr8IVCZ", {
-      urls: [
-        "https://www.linkedin.com/search/results/content/?keywords=hiring%20associate%20product%20manager%20india&datePosted=%22past-week%22",
-        "https://www.linkedin.com/search/results/content/?keywords=hiring%20APM%20india&datePosted=%22past-week%22",
-      ],
-      deepScrape: false,
-      maxItems: 20,
-      proxy: {
-        useApifyProxy: true,
-        apifyProxyGroups: ["RESIDENTIAL"],
-      },
+    const items = await runApifyActor(LINKEDIN_JOBS_ACTOR, {
+      urls: searchUrls,
+      scrapeCompany: false,
+      count: 100,
     });
 
     for (const item of items) {
-      const text = item.text || item.postText || item.content || "";
-      const url = item.postUrl || item.url || "";
-      const authorName = item.authorName || item.author || "";
+      const title = item.title || item.jobTitle || item.positionName || "";
+      const company = item.companyName || item.company || item.companyTitle || "Unknown";
+      const location = item.location || item.place || item.jobLocation || "India";
+      const url = item.jobUrl || item.url || item.link || item.applyUrl || "";
+      const postedDate = item.postedAt || item.publishedAt || item.postedTime || item.listedAt || "";
+      const salary = item.salary || item.salaryInfo || "";
+      const description = (item.description || item.descriptionText || "").substring(0, 500);
 
-      if (!text || !url) continue;
-
-      const lowerText = text.toLowerCase();
-      const hasRelevantTitle = TARGET_TITLES.some((t) => lowerText.includes(t)) ||
-        (includeProductAnalyst && OPTIONAL_TITLES.some((t) => lowerText.includes(t)));
-      const hasHiringSignal = lowerText.includes("hiring") || lowerText.includes("opening") ||
-        lowerText.includes("looking for") || lowerText.includes("join") ||
-        lowerText.includes("apply") || lowerText.includes("opportunity");
-
-      if (!hasRelevantTitle || !hasHiringSignal) continue;
+      if (!title || !url) continue;
+      if (!isRelevantTitle(title, includeProductAnalyst)) continue;
 
       const isDuplicate = await storage.isDuplicateJob(url);
       if (isDuplicate) continue;
 
-      const companyMatch = text.match(/(?:at|@)\s+([A-Z][a-zA-Z\s&]+)/);
-      const company = companyMatch ? companyMatch[1].trim() : authorName || "See Post";
-
       allJobs.push({
-        title: "PM Opening (from LinkedIn post)",
+        title,
         company,
-        location: "India / Remote",
-        source: "LinkedIn Posts",
+        location,
+        source: "LinkedIn",
         url,
-        postedDate: item.postedAt || null,
-        relevanceReason: "Hiring post mentioning PM roles | Found via LinkedIn content search",
+        postedDate: postedDate ? String(postedDate) : null,
+        relevanceReason: getRelevanceReason(title, location, "LinkedIn"),
         runId: null,
-        salary: null,
-        description: text.substring(0, 500),
+        salary: salary || null,
+        description: description || null,
       });
     }
   } catch (error: any) {
-    log(`Error scraping LinkedIn posts: ${error.message}`, "scraper");
+    log(`Error scraping LinkedIn: ${error.message}`, "scraper");
   }
 
   return allJobs;
@@ -355,11 +294,8 @@ export async function runScrapeJob(
     if (sources.includes("indeed")) {
       scrapers.push(scrapeIndeed(includeProductAnalyst));
     }
-    if (sources.includes("linkedin")) {
+    if (sources.includes("linkedin") || sources.includes("linkedin_posts")) {
       scrapers.push(scrapeLinkedIn(includeProductAnalyst));
-    }
-    if (sources.includes("linkedin_posts")) {
-      scrapers.push(scrapeLinkedInPosts(includeProductAnalyst));
     }
 
     const results = await Promise.allSettled(scrapers);

@@ -2,15 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { runScrapeJob } from "./scraper";
-import { seedDatabase } from "./seed";
 import { z } from "zod";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-
-  seedDatabase().catch(console.error);
 
   app.get("/api/jobs", async (req, res) => {
     try {
