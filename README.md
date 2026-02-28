@@ -23,10 +23,10 @@ The architecture is built as a robust full-stack system focused on real-time dat
 
 ### Source Selection & Rationale
 To ensure we capture early-career PM roles effectively, I selected 4 distinct channels, orchestrated heavily via the **Apify API**:
-1.  **LinkedIn Jobs** (`curious_coder/linkedin-jobs-scraper`): Essential. This is the largest professional network where companies officially post corporate roles, particularly larger tech and enterprise opportunities.
-2.  **Wellfound / AngelList** (`radeance/wellfound-jobs-scraper`): The premier platform for startup hiring. Early-stage companies heavily recruit entry-level PMs here, and they often offer remote flexibility. 
-3.  **Indeed** (`misceres/indeed-scraper`): A high-volume generic job board that often catches traditional companies, agencies, and non-tech sectors that need PMs but don't heavily use LinkedIn or Wellfound.
-4.  **Naukri** (`memo23/naukri-job-scraper`): Critical for the Indian market specifically. Many prominent Indian conglomerates and IT service companies post entry-level PM roles exclusively here.
+1.  **LinkedIn Jobs**: Essential. This is the largest professional network where companies officially post corporate roles, particularly larger tech and enterprise opportunities.
+2.  **Wellfound / AngelList**: The premier platform for startup hiring. Early-stage companies heavily recruit entry-level PMs here, and they often offer remote flexibility. 
+3.  **Indeed**: A high-volume generic job board that often catches traditional companies, agencies, and non-tech sectors that need PMs but don't heavily use LinkedIn or Wellfound.
+4.  **Naukri**: Critical for the Indian market specifically. Many prominent Indian conglomerates and IT service companies post entry-level PM roles exclusively here.
 
 ## What I'd Improve with More Time
 
