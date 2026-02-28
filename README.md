@@ -8,8 +8,6 @@ Instead of manually checking communities, channels, and job boards every day, th
 
 <img width="1599" height="845" alt="image" src="https://github.com/user-attachments/assets/cf702929-e6be-4711-89cd-cf836964a4dc" />
 
-<img width="1814" height="850" alt="image" src="https://github.com/user-attachments/assets/f8d41973-ca18-40b1-ab90-a88c7f7cd53d" />
-
 
 
 **How it works:**
@@ -18,6 +16,10 @@ Instead of manually checking communities, channels, and job boards every day, th
 3. **Data Extraction:** The backend orchestrates robust third-party scraping actors to pull live data from 4 distinct job boards simultaneously.
 4. **Processing & Deduplication:** The fetched data is instantly filtered for relevance, deduplicated against previously found URLs (to maintain a high signal-to-noise ratio), and stored securely in a PostgreSQL database.
 5. **Insights & structured Digest:** The dashboard updates to show the new jobs, explicitly highlighting the exact role, company, source, link, and *why* it was flagged as relevant based on Airtribe parameters. Results can be instantly exported to CSV for sharing.
+
+<img width="1814" height="850" alt="image" src="https://github.com/user-attachments/assets/f8d41973-ca18-40b1-ab90-a88c7f7cd53d" />
+
+
 
 ## Tools, APIs, and Models Used
 
