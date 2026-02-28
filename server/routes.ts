@@ -13,7 +13,22 @@ export async function registerRoutes(
     try {
       const source = req.query.source as string | undefined;
       const search = req.query.search as string | undefined;
-      const jobs = await storage.getJobs({ source, search });
+      const runIdParam = req.query.runId as string | undefined;
+      const runId = runIdParam ? parseInt(runIdParam, 10) : undefined;
+      const pageParam = req.query.page as string | undefined;
+      const pageSizeParam = req.query.pageSize as string | undefined;
+      const page = pageParam ? parseInt(pageParam, 10) || 1 : 1;
+      const pageSizeRaw = pageSizeParam ? parseInt(pageSizeParam, 10) || 10 : 10;
+      const pageSize = Math.max(1, Math.min(pageSizeRaw, 100));
+      const offset = (page - 1) * pageSize;
+
+      const jobs = await storage.getJobs({
+        source,
+        search,
+        runId: Number.isNaN(runId) ? undefined : runId,
+        limit: pageSize,
+        offset,
+      });
       res.json(jobs);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -111,6 +126,33 @@ export async function registerRoutes(
         res.setHeader("Content-Disposition", "attachment; filename=pm-jobs.json");
         res.json(jobs);
       }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/runs/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    try {
+      console.log(`[API] DELETE /api/runs/${id} requested`);
+      await storage.deleteScrapeRun(id);
+      console.log(`[API] DELETE /api/runs/${id} successful`);
+      res.sendStatus(204);
+    } catch (error: any) {
+      console.error(`[API] DELETE /api/runs/${id} failed:`, error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/jobs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      const updated = await storage.updateJob(id, { status });
+      if (!updated) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

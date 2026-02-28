@@ -33,6 +33,7 @@ export const jobs = pgTable("jobs", {
   salary: text("salary"),
   description: text("description"),
   isNew: boolean("is_new").default(true).notNull(),
+  status: text("status").default("discovered").notNull(),
 });
 
 export const scrapeRunsRelations = relations(scrapeRuns, ({ many }) => ({
@@ -46,19 +47,27 @@ export const jobsRelations = relations(jobs, ({ one }) => ({
   }),
 }));
 
-export const insertScrapeRunSchema = createInsertSchema(scrapeRuns).omit({
-  id: true,
-  startedAt: true,
-  completedAt: true,
-  jobsFound: true,
-  error: true,
-  status: true,
+export const insertScrapeRunSchema = z.object({
+  sources: z.array(z.string()),
+  includeProductAnalyst: z.boolean().default(false),
+  maxJobs: z.number().default(40).optional(),
+  locations: z.array(z.string()).optional(),
+  timePeriod: z.number().optional(),
+  targetRoles: z.array(z.string()).optional(),
 });
 
-export const insertJobSchema = createInsertSchema(jobs).omit({
-  id: true,
-  scrapedAt: true,
-  isNew: true,
+export const insertJobSchema = z.object({
+  title: z.string(),
+  company: z.string(),
+  location: z.string(),
+  source: z.string(),
+  url: z.string(),
+  postedDate: z.string().optional().nullable(),
+  relevanceReason: z.string(),
+  runId: z.number().optional().nullable(),
+  salary: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  status: z.string().optional().default("discovered"),
 });
 
 export type ScrapeRun = typeof scrapeRuns.$inferSelect;
