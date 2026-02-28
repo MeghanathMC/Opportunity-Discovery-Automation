@@ -10,78 +10,56 @@ const INDEED_ACTOR = "hMvNSpz3JnHgl5jkh";
 const WELLFOUND_ACTOR = "0n8u4hOC5wGqjnpLa";
 const NAUKRI_ACTOR = "EYXvM0o2lS7rYzgey";
 
-const TARGET_TITLES = [
-  "associate product manager",
-  "assistant product manager",
-  "junior product manager",
-  "entry-level product manager",
-  "entry level product manager",
-  "apm",
+const INDIA_CITIES = [
+  "bangalore", "bengaluru", "mumbai", "delhi", "hyderabad", "pune", 
+  "chennai", "kolkata", "gurgaon", "gurugram", "noida", "ahmedabad", 
+  "jaipur", "kochi", "chandigarh", "thiruvananthapuram"
 ];
 
-const OPTIONAL_TITLES = [
-  "product analyst",
-  "product associate",
-];
-
-const INDIA_LOCATIONS = [
-  "india",
-  "bangalore",
-  "bengaluru",
-  "mumbai",
-  "delhi",
-  "hyderabad",
-  "pune",
-  "chennai",
-  "kolkata",
-  "gurgaon",
-  "gurugram",
-  "noida",
-  "ahmedabad",
-  "jaipur",
-  "chandigarh",
-  "kochi",
-  "thiruvananthapuram",
-];
-
-function isRelevantTitle(title: string, includeProductAnalyst: boolean): boolean {
+function isRelevantTitle(title: string, targetRoles: string[], includeProductAnalyst: boolean): boolean {
   const lower = title.toLowerCase();
-  const allTitles = includeProductAnalyst
-    ? [...TARGET_TITLES, ...OPTIONAL_TITLES]
-    : TARGET_TITLES;
-  return allTitles.some((t) => lower.includes(t));
+  const lowerRoles = targetRoles.map(r => r.toLowerCase());
+  if (includeProductAnalyst) {
+    lowerRoles.push("product analyst", "product associate");
+  }
+  return lowerRoles.some((t) => lower.includes(t));
 }
 
-function isRelevantLocation(location: string): boolean {
+function isRelevantLocation(location: string, targetLocations: string[]): boolean {
   const lower = location.toLowerCase();
-  if (INDIA_LOCATIONS.some((loc) => lower.includes(loc))) return true;
-  if (lower.includes("remote") || lower.includes("anywhere") || lower.includes("work from home") || lower.includes("wfh")) return true;
+  const lowerTargets = targetLocations.map(l => l.toLowerCase());
+  
+  const includesIndia = lowerTargets.some(l => l.includes("india"));
+  if (includesIndia && INDIA_CITIES.some(c => lower.includes(c))) return true;
+  if (lowerTargets.some((loc) => lower.includes(loc))) return true;
+  
+  const includesRemote = lowerTargets.some(l => l.includes("remote") || l.includes("global"));
+  if (includesRemote && (lower.includes("remote") || lower.includes("anywhere") || lower.includes("work from home") || lower.includes("wfh"))) return true;
+  
   return false;
 }
 
-function getRelevanceReason(title: string, location: string, source: string): string {
+function getRelevanceReason(title: string, location: string, source: string, targetRoles: string[], targetLocations: string[]): string {
   const reasons: string[] = [];
   const lowerTitle = title.toLowerCase();
   const lowerLoc = location.toLowerCase();
 
-  if (lowerTitle.includes("associate product manager") || lowerTitle.includes("apm")) {
-    reasons.push("APM role - ideal entry-level PM position");
-  } else if (lowerTitle.includes("assistant product manager")) {
-    reasons.push("Assistant PM - early-career PM opportunity");
-  } else if (lowerTitle.includes("junior product manager")) {
-    reasons.push("Junior PM - entry-level product management");
-  } else if (lowerTitle.includes("entry")) {
-    reasons.push("Entry-level PM position");
-  } else if (lowerTitle.includes("product analyst")) {
-    reasons.push("Product Analyst - adjacent PM-track role");
-  } else if (lowerTitle.includes("product associate")) {
-    reasons.push("Product Associate - PM-adjacent role");
+  const matchedRole = targetRoles.find(role => lowerTitle.includes(role.toLowerCase()));
+  if (matchedRole) {
+    reasons.push(`${matchedRole} role`);
+  } else if (lowerTitle.includes("product analyst") || lowerTitle.includes("product associate")) {
+    reasons.push("Product Analyst / Associate role");
+  } else {
+    reasons.push("Matches target roles");
   }
 
-  if (INDIA_LOCATIONS.some((loc) => lowerLoc.includes(loc))) {
-    reasons.push("India-based location");
-  } else if (lowerLoc.includes("remote") || lowerLoc.includes("anywhere")) {
+  const matchedLoc = targetLocations.find(loc => lowerLoc.includes(loc.toLowerCase()));
+  if (matchedLoc) {
+    reasons.push(`${matchedLoc} location`);
+  } else if (lowerLoc.includes("remote") || lowerLoc.includes("anywhere") || lowerLoc.includes("work from home")) {
     reasons.push("Remote/global position");
+  } else if (targetLocations.some(l => l.toLowerCase().includes("india")) && INDIA_CITIES.some(c => lowerLoc.includes(c))) {
+    reasons.push("India-based location");
   }
 
   reasons.push(`Found on ${source}`);
@@ -157,24 +135,21 @@ async function runApifyActor(actorId: string, input: Record<string, any>): Promi
   }
 }
 
-async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]> {
-  const searchQueries = [
-    "associate product manager",
-    "junior product manager",
-    "APM",
-  ];
+async function scrapeIndeed(includeProductAnalyst: boolean, targetRoles: string[], locations: string[], timePeriod: number): Promise<InsertJob[]> {
+  const searchQueries = [...targetRoles];
   if (includeProductAnalyst) {
-    searchQueries.push("product analyst");
+    searchQueries.push("product analyst", "product associate");
   }
 
   const allJobs: InsertJob[] = [];
+  const primaryLoc = locations.length > 0 ? locations[0] : "India";
 
   for (const query of searchQueries) {
     try {
       const items = await runApifyActor(INDEED_ACTOR, {
         position: query,
         country: "IN",
-        location: "India",
+        location: primaryLoc,
         maxItemsPerSearch: 15,
         parseCompanyDetails: false,
         saveOnlyUniqueItems: true,
@@ -184,15 +159,15 @@ async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]
       for (const item of items) {
         const title = item.positionName || item.title || "";
         const company = item.company || item.companyName || "Unknown";
-        const location = item.location || item.jobLocation || "India";
+        const location = item.location || item.jobLocation || primaryLoc;
         const url = item.url || item.externalApplyLink || "";
         const postedDate = item.postedAt || item.scrapedAt || "";
         const salary = item.salary || "";
         const description = (item.description || "").substring(0, 500);
 
         if (!title || !url) continue;
-        if (!isRelevantTitle(title, includeProductAnalyst)) continue;
-        if (!isRelevantLocation(location)) continue;
+        if (!isRelevantTitle(title, targetRoles, includeProductAnalyst)) continue;
+        if (!isRelevantLocation(location, locations)) continue;
 
         const isDuplicate = await storage.isDuplicateJob(url);
         if (isDuplicate) continue;
@@ -204,7 +179,7 @@ async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]
           source: "Indeed",
           url,
           postedDate: postedDate || null,
-          relevanceReason: getRelevanceReason(title, location, "Indeed"),
+          relevanceReason: getRelevanceReason(title, location, "Indeed", targetRoles, locations),
           runId: null,
           salary: salary || null,
           description: description || null,
@@ -218,16 +193,16 @@ async function scrapeIndeed(includeProductAnalyst: boolean): Promise<InsertJob[]
   return allJobs;
 }
 
-async function scrapeLinkedIn(includeProductAnalyst: boolean): Promise<InsertJob[]> {
-  const searchUrls = [
-    "https://www.linkedin.com/jobs/search/?keywords=associate%20product%20manager&location=India&f_TPR=r604800",
-    "https://www.linkedin.com/jobs/search/?keywords=junior%20product%20manager&location=India&f_TPR=r604800",
-    "https://www.linkedin.com/jobs/search/?keywords=APM%20product%20manager&location=India&f_TPR=r604800",
-  ];
-  if (includeProductAnalyst) {
-    searchUrls.push(
-      "https://www.linkedin.com/jobs/search/?keywords=product%20analyst&location=India&f_TPR=r604800"
-    );
+async function scrapeLinkedIn(includeProductAnalyst: boolean, targetRoles: string[], locations: string[], timePeriod: number): Promise<InsertJob[]> {
+  const timeParam = timePeriod * 86400;
+  const searchQueries = [...targetRoles];
+  if (includeProductAnalyst) searchQueries.push("product analyst", "product associate");
+
+  const searchUrls: string[] = [];
+  for (const query of searchQueries) {
+      for (const loc of locations) {
+        searchUrls.push(`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(query)}&location=${encodeURIComponent(loc)}&f_TPR=r${timeParam}`);
+      }
   }
 
   const allJobs: InsertJob[] = [];
@@ -249,7 +224,7 @@ async function scrapeLinkedIn(includeProductAnalyst: boolean): Promise<InsertJob
       const description = (item.description || item.descriptionText || "").substring(0, 500);
 
       if (!title || !url) continue;
-      if (!isRelevantTitle(title, includeProductAnalyst)) continue;
+      if (!isRelevantTitle(title, targetRoles, includeProductAnalyst)) continue;
 
       const isDuplicate = await storage.isDuplicateJob(url);
       if (isDuplicate) continue;
@@ -261,7 +236,7 @@ async function scrapeLinkedIn(includeProductAnalyst: boolean): Promise<InsertJob
         source: "LinkedIn",
         url,
         postedDate: postedDate ? String(postedDate) : null,
-        relevanceReason: getRelevanceReason(title, location, "LinkedIn"),
+        relevanceReason: getRelevanceReason(title, location, "LinkedIn", targetRoles, locations),
         runId: null,
         salary: salary || null,
         description: description || null,
@@ -274,14 +249,16 @@ async function scrapeLinkedIn(includeProductAnalyst: boolean): Promise<InsertJob
   return allJobs;
 }
 
-async function scrapeWellfound(includeProductAnalyst: boolean): Promise<InsertJob[]> {
+async function scrapeWellfound(includeProductAnalyst: boolean, targetRoles: string[], locations: string[], timePeriod: number): Promise<InsertJob[]> {
   const allJobs: InsertJob[] = [];
+  const primaryLoc = locations.find(l => !l.toLowerCase().includes("remote")) || "worldwide";
+  const isRemote = locations.some(l => l.toLowerCase().includes("remote") || l.toLowerCase().includes("global"));
 
   try {
     const items = await runApifyActor(WELLFOUND_ACTOR, {
       job_title: "product-manager",
-      location: "india",
-      remote: true,
+      location: primaryLoc,
+      remote: isRemote,
       max_items: 30,
     });
 
@@ -295,8 +272,8 @@ async function scrapeWellfound(includeProductAnalyst: boolean): Promise<InsertJo
       const description = (item.description || item.jobDescription || "").substring(0, 500);
 
       if (!title || !url) continue;
-      if (!isRelevantTitle(title, includeProductAnalyst)) continue;
-      if (!isRelevantLocation(location)) continue;
+      if (!isRelevantTitle(title, targetRoles, includeProductAnalyst)) continue;
+      if (!isRelevantLocation(location, locations)) continue;
 
       const isDuplicate = await storage.isDuplicateJob(url);
       if (isDuplicate) continue;
@@ -308,7 +285,7 @@ async function scrapeWellfound(includeProductAnalyst: boolean): Promise<InsertJo
         source: "Wellfound",
         url,
         postedDate: postedDate ? String(postedDate) : null,
-        relevanceReason: getRelevanceReason(title, location, "Wellfound"),
+        relevanceReason: getRelevanceReason(title, location, "Wellfound", targetRoles, locations),
         runId: null,
         salary: salary ? String(salary) : null,
         description: description || null,
@@ -321,14 +298,26 @@ async function scrapeWellfound(includeProductAnalyst: boolean): Promise<InsertJo
   return allJobs;
 }
 
-async function scrapeNaukri(includeProductAnalyst: boolean): Promise<InsertJob[]> {
-  const searchUrls = [
-    "https://www.naukri.com/associate-product-manager-jobs?jobAge=7",
-    "https://www.naukri.com/junior-product-manager-jobs?jobAge=7",
-    "https://www.naukri.com/apm-product-manager-jobs?jobAge=7",
-  ];
-  if (includeProductAnalyst) {
-    searchUrls.push("https://www.naukri.com/product-analyst-jobs?jobAge=7");
+async function scrapeNaukri(includeProductAnalyst: boolean, targetRoles: string[], locations: string[], timePeriod: number): Promise<InsertJob[]> {
+  const searchUrls: string[] = [];
+  const searchQueries = [...targetRoles];
+  if (includeProductAnalyst) searchQueries.push("product analyst", "product associate");
+  
+  for (const query of searchQueries) {
+     for (const loc of locations) {
+        if (loc.toLowerCase().includes("remote") || loc.toLowerCase().includes("global")) continue;
+        const formattedQuery = query.toLowerCase().replace(/ /g, "-");
+        const formattedLoc = loc.toLowerCase().replace(/ /g, "-");
+        if (loc.toLowerCase() === "india") {
+           searchUrls.push(`https://www.naukri.com/${formattedQuery}-jobs?jobAge=${timePeriod}`);
+        } else {
+           searchUrls.push(`https://www.naukri.com/${formattedQuery}-jobs-in-${formattedLoc}?jobAge=${timePeriod}`);
+        }
+     }
+  }
+
+  if (searchUrls.length === 0 && includeProductAnalyst) {
+    searchUrls.push(`https://www.naukri.com/product-analyst-jobs?jobAge=${timePeriod}`);
   }
 
   const allJobs: InsertJob[] = [];
@@ -351,7 +340,7 @@ async function scrapeNaukri(includeProductAnalyst: boolean): Promise<InsertJob[]
       const experience = item.experience || item.placeholders?.find((p: any) => p.type === "experience")?.label || "";
 
       if (!title || !url) continue;
-      if (!isRelevantTitle(title, includeProductAnalyst)) continue;
+      if (!isRelevantTitle(title, targetRoles, includeProductAnalyst)) continue;
 
       const isDuplicate = await storage.isDuplicateJob(url);
       if (isDuplicate) continue;
@@ -363,7 +352,7 @@ async function scrapeNaukri(includeProductAnalyst: boolean): Promise<InsertJob[]
         source: "Naukri",
         url,
         postedDate: postedDate ? String(postedDate) : null,
-        relevanceReason: getRelevanceReason(title, typeof location === "string" ? location : "India", "Naukri") + (experience ? ` | ${experience}` : ""),
+        relevanceReason: getRelevanceReason(title, typeof location === "string" ? location : "India", "Naukri", targetRoles, locations) + (experience ? ` | ${experience}` : ""),
         runId: null,
         salary: salary ? String(salary) : null,
         description: description || null,
@@ -379,12 +368,18 @@ async function scrapeNaukri(includeProductAnalyst: boolean): Promise<InsertJob[]
 export async function runScrapeJob(
   sources: string[],
   includeProductAnalyst: boolean,
-  maxJobs: number = 40
+  maxJobs: number = 40,
+  locations: string[] = ["India", "Remote"],
+  targetRoles: string[] = ["APM", "Junior PM", "Assistant PM", "Entry-Level PM"],
+  timePeriod: number = 7
 ): Promise<{ runId: number; jobs: InsertJob[] }> {
   const run = await storage.createScrapeRun({
     sources,
     includeProductAnalyst,
     maxJobs,
+    locations,
+    targetRoles,
+    timePeriod
   });
 
   await storage.updateScrapeRun(run.id, { status: "running" });
@@ -396,16 +391,16 @@ export async function runScrapeJob(
     const scrapers: Promise<InsertJob[]>[] = [];
 
     if (sources.includes("indeed")) {
-      scrapers.push(scrapeIndeed(includeProductAnalyst));
+      scrapers.push(scrapeIndeed(includeProductAnalyst, targetRoles, locations, timePeriod));
     }
     if (sources.includes("linkedin")) {
-      scrapers.push(scrapeLinkedIn(includeProductAnalyst));
+      scrapers.push(scrapeLinkedIn(includeProductAnalyst, targetRoles, locations, timePeriod));
     }
     if (sources.includes("wellfound")) {
-      scrapers.push(scrapeWellfound(includeProductAnalyst));
+      scrapers.push(scrapeWellfound(includeProductAnalyst, targetRoles, locations, timePeriod));
     }
     if (sources.includes("naukri")) {
-      scrapers.push(scrapeNaukri(includeProductAnalyst));
+      scrapers.push(scrapeNaukri(includeProductAnalyst, targetRoles, locations, timePeriod));
     }
 
     const results = await Promise.allSettled(scrapers);

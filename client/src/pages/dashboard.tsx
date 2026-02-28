@@ -212,6 +212,10 @@ export default function Dashboard() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [includeProductAnalyst, setIncludeProductAnalyst] = useState(false);
   const [selectedSources, setSelectedSources] = useState<string[]>(["indeed", "linkedin", "wellfound", "naukri"]);
+  const [targetRoles, setTargetRoles] = useState<string[]>(["APM", "Junior PM", "Assistant PM", "Entry-Level PM"]);
+  const [locationsInput, setLocationsInput] = useState<string>("India, Remote");
+  const [timePeriod, setTimePeriod] = useState<string>("7");
+  const [maxJobs, setMaxJobs] = useState<number>(40);
 
   const jobsQueryUrl = (() => {
     const params = new URLSearchParams();
@@ -243,10 +247,14 @@ export default function Dashboard() {
 
   const scrapeMutation = useMutation({
     mutationFn: async () => {
+      const locations = locationsInput.split(',').map(l => l.trim()).filter(Boolean);
       const res = await apiRequest("POST", "/api/scrape", {
         sources: selectedSources,
         includeProductAnalyst,
-        maxJobs: 40,
+        maxJobs,
+        locations: locations.length > 0 ? locations : ["India", "Remote"],
+        targetRoles: targetRoles.length > 0 ? targetRoles : ["APM"],
+        timePeriod: parseInt(timePeriod) || 7,
       });
       return res.json();
     },
@@ -409,34 +417,55 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Target Roles</Label>
                   <div className="flex flex-wrap gap-1.5">
-                    {["APM", "Junior PM", "Assistant PM", "Entry-Level PM"].map((role) => (
-                      <Badge key={role} variant="outline" className="text-[10px]">{role}</Badge>
+                    {["APM", "Junior PM", "Assistant PM", "Entry-Level PM", "Product Manager"].map((role) => (
+                      <Badge 
+                        key={role} 
+                        variant={targetRoles.includes(role) ? "default" : "outline"} 
+                        className="text-[10px] cursor-pointer"
+                        onClick={() => {
+                          setTargetRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role])
+                        }}
+                      >{role}</Badge>
                     ))}
-                    {includeProductAnalyst && (
-                      <>
-                        <Badge variant="outline" className="text-[10px]">Product Analyst</Badge>
-                        <Badge variant="outline" className="text-[10px]">Product Associate</Badge>
-                      </>
-                    )}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Locations</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Badge variant="outline" className="text-[10px]">India (All cities)</Badge>
-                    <Badge variant="outline" className="text-[10px]">Remote / Global</Badge>
-                  </div>
+                  <Label className="text-xs text-muted-foreground">Locations (comma separated)</Label>
+                  <Input 
+                    placeholder="e.g., Bangalore, Remote, India" 
+                    value={locationsInput}
+                    onChange={(e) => setLocationsInput(e.target.value)}
+                    className="h-8 text-xs"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Time Period</Label>
-                  <Badge variant="outline" className="text-[10px]">Last 7 days</Badge>
+                  <Label className="text-xs text-muted-foreground">Time Period (days)</Label>
+                  <Select value={timePeriod} onValueChange={setTimePeriod}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Select period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Last 24 hours (1d)</SelectItem>
+                      <SelectItem value="3">Last 3 days</SelectItem>
+                      <SelectItem value="7">Last 7 days</SelectItem>
+                      <SelectItem value="14">Last 14 days</SelectItem>
+                      <SelectItem value="30">Last 30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Max Jobs Per Run</Label>
-                  <Badge variant="secondary" className="text-[10px]">40 jobs</Badge>
+                  <Label className="text-xs text-muted-foreground">Max Jobs Per Run (1-100)</Label>
+                  <Input 
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={maxJobs}
+                    onChange={(e) => setMaxJobs(parseInt(e.target.value) || 1)}
+                    className="h-8 text-xs"
+                  />
                 </div>
               </CardContent>
             </Card>

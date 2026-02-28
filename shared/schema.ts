@@ -14,6 +14,9 @@ export const scrapeRuns = pgTable("scrape_runs", {
   error: text("error"),
   includeProductAnalyst: boolean("include_product_analyst").default(false).notNull(),
   maxJobs: integer("max_jobs").default(40).notNull(),
+  locations: text("locations").array().notNull().default(sql`'{"India", "Remote"}'`),
+  timePeriod: integer("time_period").notNull().default(7),
+  targetRoles: text("target_roles").array().notNull().default(sql`'{"APM", "Junior PM", "Assistant PM", "Entry-Level PM"}'`),
 });
 
 export const jobs = pgTable("jobs", {

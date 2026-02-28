@@ -77,12 +77,15 @@ export async function registerRoutes(
         sources: z.array(z.string()).min(1),
         includeProductAnalyst: z.boolean().default(false),
         maxJobs: z.number().min(1).max(100).default(40),
+        locations: z.array(z.string()).min(1).default(["India", "Remote"]),
+        targetRoles: z.array(z.string()).min(1).default(["APM", "Junior PM", "Assistant PM", "Entry-Level PM"]),
+        timePeriod: z.number().min(1).default(7),
       });
-      const { sources, includeProductAnalyst, maxJobs } = schema.parse(req.body);
+      const { sources, includeProductAnalyst, maxJobs, locations, targetRoles, timePeriod } = schema.parse(req.body);
 
       res.json({ message: "Scrape job started", status: "running" });
 
-      runScrapeJob(sources, includeProductAnalyst, maxJobs).catch((error) => {
+      runScrapeJob(sources, includeProductAnalyst, maxJobs, locations, targetRoles, timePeriod).catch((error) => {
         console.error("Scrape job failed:", error);
       });
     } catch (error: any) {
