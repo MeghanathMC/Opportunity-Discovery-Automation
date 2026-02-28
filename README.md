@@ -6,6 +6,9 @@ I built **Opportunity Scout**, an automated job discovery platform tailored spec
 
 Instead of manually checking communities, channels, and job boards every day, this tool fully automates the process by scraping live listings across multiple job sources and outputting a clean, structured digest.
 
+<img width="1599" height="845" alt="image" src="https://github.com/user-attachments/assets/cf702929-e6be-4711-89cd-cf836964a4dc" />
+
+
 **How it works:**
 1. **Configurable Dashboard:** The Airtribe team uses a simple React frontend to define exact criteria: job titles (e.g., "APM", "Junior PM"), target locations (India or Remote), search timeframes, and maximum jobs per run.
 2. **Scraper Engine:** When a run is triggered, the Express.js backend receives these configurations and dynamically prepares search queries.
