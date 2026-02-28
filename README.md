@@ -32,7 +32,6 @@ To ensure we capture early-career PM roles effectively, I selected 4 distinct ch
 
 Given more time to scale the product for the Career Services team, I would focus heavily on automation and deeper filtering:
 
-1. **Automated Cron Scheduling (No Babysitting)**: I would implement automated CRON jobs using a service like Trigger.dev or GitHub Actions so the scrapers run completely headlessly in the background every 12 or 24 hours without any user intervention.
+1. **Automated Cron Scheduling**: I would implement automated CRON jobs using a service like Trigger.dev or GitHub Actions so the scrapers run completely headlessly in the background every 12 or 24 hours without any user intervention.
 2. **Real-time Slack Notifications**: As soon as the scheduled cron job discovers a new job that meets the criteria, I would ping the structured message (Role, Company, Link, Reason) directly to the Career Services Slack channel so the team is immediately notified without needing to check the dashboard.
 3. **Expanding the Discovery Funnel (Discord, Twitter, etc.)**: Beyond traditional job boards (LinkedIn, Indeed), the highest-signal opportunities often come from community networks. I would build custom scrapers or integrate bot webhooks to pull raw data directly from **Twitter/X**, targeted **Discord** communities, and niche **Slack** groups where founders hire directly.
-4. **AI-Powered Description Analysis**: Passing the scraped descriptions through an LLM (Gemini/Claude) to analyze the actual *daily responsibilities* and *required years of experience* (to filter out "Junior" titles that actually ask for 3+ YOE), drastically improving the signal-to-noise ratio.
