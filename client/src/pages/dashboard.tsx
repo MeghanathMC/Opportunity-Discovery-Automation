@@ -47,7 +47,7 @@ import {
   Plus,
   Copy,
 } from "lucide-react";
-import { SiLinkedin, SiIndeed } from "react-icons/si";
+import { SiLinkedin, SiIndeed, SiWellfound } from "react-icons/si";
 import { format, formatDistanceToNow } from "date-fns";
 
 const DISCOVERY_SETTINGS_KEY = "opportunity-scout-discovery-settings";
@@ -735,19 +735,41 @@ export default function Dashboard() {
                         label: "LinkedIn Jobs",
                         icon: SiLinkedin,
                       },
+                      { 
+                        id: "naukri", 
+                        label: "Naukri Jobs", 
+                        icon: Globe, 
+                        tbd: true 
+                      },
+                      { 
+                        id: "wellfound", 
+                        label: "Wellfound Jobs", 
+                        icon: SiWellfound, 
+                        tbd: true 
+                      },
                     ].map((source) => (
-                      <label
+                      <div
                         key={source.id}
-                        className="flex items-center gap-2.5 cursor-pointer py-1"
-                        data-testid={`toggle-source-${source.id}`}
+                        className="flex items-center justify-between py-1"
                       >
-                        <Switch
-                          checked={selectedSources.includes(source.id)}
-                          onCheckedChange={() => toggleSource(source.id)}
-                        />
-                        <source.icon className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-sm">{source.label}</span>
-                      </label>
+                        <label
+                          className={`flex items-center gap-2.5 ${source.tbd ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                          data-testid={`toggle-source-${source.id}`}
+                        >
+                          <Switch
+                            checked={selectedSources.includes(source.id)}
+                            onCheckedChange={() => !source.tbd && toggleSource(source.id)}
+                            disabled={source.tbd}
+                          />
+                          <source.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-sm">{source.label}</span>
+                        </label>
+                        {source.tbd && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+                            TBD
+                          </Badge>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
