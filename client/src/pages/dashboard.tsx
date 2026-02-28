@@ -47,7 +47,7 @@ import {
   Plus,
   Copy,
 } from "lucide-react";
-import { SiLinkedin, SiIndeed, SiWellfound } from "react-icons/si";
+import { SiLinkedin, SiIndeed, SiWellfound, SiDiscord, SiX } from "react-icons/si";
 import { format, formatDistanceToNow } from "date-fns";
 
 const DISCOVERY_SETTINGS_KEY = "opportunity-scout-discovery-settings";
@@ -745,6 +745,18 @@ export default function Dashboard() {
                         id: "wellfound", 
                         label: "Wellfound Jobs", 
                         icon: SiWellfound, 
+                        tbd: true 
+                      },
+                      { 
+                        id: "discord", 
+                        label: "Discord Communities", 
+                        icon: SiDiscord, 
+                        tbd: true 
+                      },
+                      { 
+                        id: "twitter", 
+                        label: "Twitter / X Feed", 
+                        icon: SiX, 
                         tbd: true 
                       },
                     ].map((source) => (
