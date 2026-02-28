@@ -20,11 +20,6 @@ The architecture was built entirely as a full-stack automated platform rather th
 *   **Frontend**: Built with **React** and **TypeScript**, bundled via **Vite**. UI styling is achieved seamlessly through **Tailwind CSS** and customized Radix **Shadcn UI** components.
 *   **Backend engine**: A robust **Node.js/Express.js** server handling the REST API, scraping orchestration, and job data processing.
 *   **Database**: **PostgreSQL** (hosted on Neon), interfaced using the **Drizzle ORM** for fully typed queries and schema migrations.
-*   **External APIs (The Scrapers)**: The core extraction engine runs heavily on the **Apify API**, explicitly orchestrating 4 unique platform actors to extract structured data from:
-    *   LinkedIn Jobs (`curious_coder/linkedin-jobs-scraper`)
-    *   Indeed (`misceres/indeed-scraper`)
-    *   Wellfound/AngelList (`radeance/wellfound-jobs-scraper`)
-    *   Naukri (`memo23/naukri-job-scraper`)
 
 ## What I'd Improve with More Time
 
