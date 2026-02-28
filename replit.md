@@ -7,7 +7,7 @@ Automated early-career PM job discovery web application that scrapes multiple jo
 - **Frontend**: React + TypeScript + Tailwind CSS + Shadcn UI
 - **Backend**: Express.js + TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
-- **Scraping**: Apify API for LinkedIn Jobs, LinkedIn Posts, and Indeed
+- **Scraping**: Apify API for LinkedIn Jobs, Indeed, Wellfound, and Naukri
 
 ## Data Model
 
@@ -16,7 +16,7 @@ Automated early-career PM job discovery web application that scrapes multiple jo
 
 ## Key Features
 
-- Multi-source job scraping (Indeed, LinkedIn Jobs, LinkedIn Posts) via Apify
+- Multi-source job scraping (Indeed, LinkedIn Jobs, Wellfound, Naukri) via Apify
 - Configurable filters: role titles, locations (India + remote), time period (7 days)
 - Optional product analyst/associate toggle
 - 40 jobs per run cap
@@ -44,6 +44,7 @@ Automated early-career PM job discovery web application that scrapes multiple jo
 
 ## Apify Actors Used
 
-- `hKByXkMQaC5Qt9UMN` - Indeed job scraper
-- `BHzDUfc6gjnse8RcT` - LinkedIn jobs scraper
-- `2SyF0bVxmgGr8IVCZ` - LinkedIn posts scraper
+- `hKByXkMQaC5Qt9UMN` - LinkedIn Jobs scraper (curious_coder)
+- `hMvNSpz3JnHgl5jkh` - Indeed scraper (misceres)
+- `0n8u4hOC5wGqjnpLa` - Wellfound/AngelList scraper (radeance, $24.99/mo + usage, free trial available)
+- `EYXvM0o2lS7rYzgey` - Naukri.com scraper (memo23, $0.99/1,000 results)

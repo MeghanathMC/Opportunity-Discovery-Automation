@@ -33,7 +33,7 @@ import {
   Sparkles,
   Eye,
 } from "lucide-react";
-import { SiLinkedin, SiIndeed } from "react-icons/si";
+import { SiLinkedin, SiIndeed, SiWellfound } from "react-icons/si";
 import { format, formatDistanceToNow } from "date-fns";
 
 type Stats = {
@@ -47,6 +47,8 @@ function SourceIcon({ source }: { source: string }) {
   const lower = source.toLowerCase();
   if (lower.includes("linkedin")) return <SiLinkedin className="w-3.5 h-3.5" />;
   if (lower.includes("indeed")) return <SiIndeed className="w-3.5 h-3.5" />;
+  if (lower.includes("wellfound")) return <SiWellfound className="w-3.5 h-3.5" />;
+  if (lower.includes("naukri")) return <Briefcase className="w-3.5 h-3.5" />;
   return <Globe className="w-3.5 h-3.5" />;
 }
 
@@ -209,7 +211,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [includeProductAnalyst, setIncludeProductAnalyst] = useState(false);
-  const [selectedSources, setSelectedSources] = useState<string[]>(["indeed", "linkedin"]);
+  const [selectedSources, setSelectedSources] = useState<string[]>(["indeed", "linkedin", "wellfound", "naukri"]);
 
   const jobsQueryUrl = (() => {
     const params = new URLSearchParams();
@@ -370,6 +372,8 @@ export default function Dashboard() {
                     {[
                       { id: "indeed", label: "Indeed Jobs", icon: SiIndeed },
                       { id: "linkedin", label: "LinkedIn Jobs", icon: SiLinkedin },
+                      { id: "wellfound", label: "Wellfound (AngelList)", icon: SiWellfound },
+                      { id: "naukri", label: "Naukri.com", icon: Briefcase },
                     ].map((source) => (
                       <label
                         key={source.id}
@@ -488,7 +492,8 @@ export default function Dashboard() {
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="Indeed">Indeed</SelectItem>
                   <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                  <SelectItem value="LinkedIn Posts">LinkedIn Posts</SelectItem>
+                  <SelectItem value="Wellfound">Wellfound</SelectItem>
+                  <SelectItem value="Naukri">Naukri</SelectItem>
                 </SelectContent>
               </Select>
               {newJobCount > 0 && (

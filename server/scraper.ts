@@ -7,6 +7,8 @@ const APIFY_BASE_URL = "https://api.apify.com/v2";
 
 const LINKEDIN_JOBS_ACTOR = "hKByXkMQaC5Qt9UMN";
 const INDEED_ACTOR = "hMvNSpz3JnHgl5jkh";
+const WELLFOUND_ACTOR = "0n8u4hOC5wGqjnpLa";
+const NAUKRI_ACTOR = "EYXvM0o2lS7rYzgey";
 
 const TARGET_TITLES = [
   "associate product manager",
@@ -272,6 +274,108 @@ async function scrapeLinkedIn(includeProductAnalyst: boolean): Promise<InsertJob
   return allJobs;
 }
 
+async function scrapeWellfound(includeProductAnalyst: boolean): Promise<InsertJob[]> {
+  const allJobs: InsertJob[] = [];
+
+  try {
+    const items = await runApifyActor(WELLFOUND_ACTOR, {
+      job_title: "product-manager",
+      location: "india",
+      remote: true,
+      max_items: 30,
+    });
+
+    for (const item of items) {
+      const title = item.title || item.jobTitle || item.role || "";
+      const company = item.companyName || item.company || item.startup || "Unknown";
+      const location = item.location || item.jobLocation || "India / Remote";
+      const url = item.url || item.jobUrl || item.applyUrl || "";
+      const postedDate = item.postedAt || item.publishedAt || item.createdAt || "";
+      const salary = item.compensation || item.salary || item.salaryRange || "";
+      const description = (item.description || item.jobDescription || "").substring(0, 500);
+
+      if (!title || !url) continue;
+      if (!isRelevantTitle(title, includeProductAnalyst)) continue;
+      if (!isRelevantLocation(location)) continue;
+
+      const isDuplicate = await storage.isDuplicateJob(url);
+      if (isDuplicate) continue;
+
+      allJobs.push({
+        title,
+        company,
+        location,
+        source: "Wellfound",
+        url,
+        postedDate: postedDate ? String(postedDate) : null,
+        relevanceReason: getRelevanceReason(title, location, "Wellfound"),
+        runId: null,
+        salary: salary ? String(salary) : null,
+        description: description || null,
+      });
+    }
+  } catch (error: any) {
+    log(`Error scraping Wellfound: ${error.message}`, "scraper");
+  }
+
+  return allJobs;
+}
+
+async function scrapeNaukri(includeProductAnalyst: boolean): Promise<InsertJob[]> {
+  const searchUrls = [
+    "https://www.naukri.com/associate-product-manager-jobs?jobAge=7",
+    "https://www.naukri.com/junior-product-manager-jobs?jobAge=7",
+    "https://www.naukri.com/apm-product-manager-jobs?jobAge=7",
+  ];
+  if (includeProductAnalyst) {
+    searchUrls.push("https://www.naukri.com/product-analyst-jobs?jobAge=7");
+  }
+
+  const allJobs: InsertJob[] = [];
+
+  try {
+    const items = await runApifyActor(NAUKRI_ACTOR, {
+      startUrls: searchUrls.map((url) => ({ url })),
+      maxItems: 30,
+      maxConcurrency: 5,
+    });
+
+    for (const item of items) {
+      const title = item.title || item.jobTitle || item.designation || "";
+      const company = item.companyName || item.company || "Unknown";
+      const location = item.location || item.placeholders?.find((p: any) => p.type === "location")?.label || item.jobLocation || "India";
+      const url = item.url || item.jdURL || item.applyUrl || "";
+      const postedDate = item.postedDate || item.footerPlaceholderLabel || item.createdDate || "";
+      const salary = item.salary || item.salaryLabel || item.placeholders?.find((p: any) => p.type === "salary")?.label || "";
+      const description = (item.description || item.jobDescription || item.snippet || "").substring(0, 500);
+      const experience = item.experience || item.placeholders?.find((p: any) => p.type === "experience")?.label || "";
+
+      if (!title || !url) continue;
+      if (!isRelevantTitle(title, includeProductAnalyst)) continue;
+
+      const isDuplicate = await storage.isDuplicateJob(url);
+      if (isDuplicate) continue;
+
+      allJobs.push({
+        title,
+        company,
+        location: typeof location === "string" ? location : "India",
+        source: "Naukri",
+        url,
+        postedDate: postedDate ? String(postedDate) : null,
+        relevanceReason: getRelevanceReason(title, typeof location === "string" ? location : "India", "Naukri") + (experience ? ` | ${experience}` : ""),
+        runId: null,
+        salary: salary ? String(salary) : null,
+        description: description || null,
+      });
+    }
+  } catch (error: any) {
+    log(`Error scraping Naukri: ${error.message}`, "scraper");
+  }
+
+  return allJobs;
+}
+
 export async function runScrapeJob(
   sources: string[],
   includeProductAnalyst: boolean,
@@ -294,8 +398,14 @@ export async function runScrapeJob(
     if (sources.includes("indeed")) {
       scrapers.push(scrapeIndeed(includeProductAnalyst));
     }
-    if (sources.includes("linkedin") || sources.includes("linkedin_posts")) {
+    if (sources.includes("linkedin")) {
       scrapers.push(scrapeLinkedIn(includeProductAnalyst));
+    }
+    if (sources.includes("wellfound")) {
+      scrapers.push(scrapeWellfound(includeProductAnalyst));
+    }
+    if (sources.includes("naukri")) {
+      scrapers.push(scrapeNaukri(includeProductAnalyst));
     }
 
     const results = await Promise.allSettled(scrapers);
